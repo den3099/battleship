@@ -12,6 +12,7 @@ module mux_arbitro (
 );
 
     always_comb begin
+        DataIn_o = 0;
         case (select_i)
             3'b000: DataIn_o = rdata_mem;
             3'b001: DataIn_o = rdata_displays;
