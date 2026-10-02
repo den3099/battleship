@@ -14,7 +14,14 @@ module datapath(
     output logic [31:0] InstrD,
     output logic zero,
     output logic less,
-    output logic [2:0] funct3E
+    output logic [2:0] funct3E,
+
+    input  logic [31:0] DataIn_i,
+    output logic [31:0] DataOut_o,
+    output logic [31:0] DataAddress_o,
+    output logic        we_o,
+
+    output logic [2:0] funct3_o
 );
 
     // ======================
@@ -105,6 +112,15 @@ module datapath(
     logic [31:0] ImmExtW;
     logic [31:0] PCPlus4W;
     logic [31:0] ResultW;
+
+    // ======================
+    // CONEXIONES EXTERNAS
+    // ======================
+    assign DataAddress_o = ALUResultM;
+    assign DataOut_o     = WriteDataM;
+    assign we_o          = MemWriteM;
+    assign ReadDataM     = DataIn_i;
+    assign funct3_o      = funct3M;
 
     // ======================
     // PC
@@ -292,14 +308,14 @@ module datapath(
     // ======================
     // Memoria de datos
     // ======================
-    data_mem u_dmem(
-        .funct3M(funct3M),
-        .clk(clk),
-        .WE(MemWriteM),
-        .A(ALUResultM),
-        .WD(WriteDataM),
-        .ReadDataM(ReadDataM)
-    );
+    //data_mem u_dmem(
+    //    .funct3M(funct3M),
+    //    .clk(clk),
+    //    .WE(MemWriteM),
+    //    .A(ALUResultM),
+    //    .WD(WriteDataM),
+    //    .ReadDataM(ReadDataM)
+    //);
 
     // ======================
     // Register Fetch-Decode

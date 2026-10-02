@@ -1,6 +1,12 @@
 module cpu (
-    input logic clk,
-    input logic rst
+    input  logic clk,
+    input  logic rst,
+
+    input  logic [31:0] DataIn_i,
+    output logic [31:0] DataOut_o,
+    output logic [31:0] DataAddress_o,
+    output logic        we_o,
+    output logic [2:0] funct3_o
 );
 
     // ======================
@@ -37,7 +43,13 @@ module cpu (
         .InstrD(InstrD),
         .zero(zero),
         .less(less),
-        .funct3E(funct3E)
+        .funct3E(funct3E),
+
+        .DataIn_i(DataIn_i),
+        .DataAddress_o(DataAddress_o),
+        .DataOut_o(DataOut_o),
+        .we_o(we_o),
+        .funct3_o(funct3_o)
     );
 
     // ======================

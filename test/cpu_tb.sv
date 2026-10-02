@@ -3,11 +3,24 @@ module tb_cpu;
     logic clk;
     logic rst;
 
+    logic [31:0] DataIn_i;
+    logic [31:0] DataOut_o;
+    logic [31:0] DataAddress_o;
+    logic        we_o;
+    logic [2:0]  funct3_o;
+
     // Instancia CPU
     cpu dut(
         .clk(clk),
-        .rst(rst)
+        .rst(rst),
+        .DataIn_i(DataIn_i),
+        .DataOut_o(DataOut_o),
+        .DataAddress_o(DataAddress_o),
+        .we_o(we_o),
+        .funct3_o(funct3_o)
     );
+
+    assign DataIn_i = 32'h0000_0000;
 
     // ======================
     // Clock
@@ -36,6 +49,12 @@ module tb_cpu;
             $display("RS2     = %0d", dut.dp.RD2D);
             $display("Result  = %0d", dut.dp.ResultW);
             $display("zero    = %b", dut.zero);
+
+            $display("---- MEMORY I/O ----");
+            $display("WE (Write Enable) = %b", we_o);
+            $display("Address           = %h", DataAddress_o);
+            $display("Data Out (Write)  = %h", DataOut_o);
+            $display("Data In  (Read)   = %h", DataIn_i);
 
             $display("---- REGISTERS ----");
             $display("x1=%0d x2=%0d x3=%0d x4=%0d",
