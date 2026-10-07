@@ -20,6 +20,7 @@ module datapath(
     output logic [31:0] DataOut_o,
     output logic [31:0] DataAddress_o,
     output logic        we_o,
+    output logic        re_o,
 
     output logic [2:0] funct3_o
 );
@@ -119,6 +120,7 @@ module datapath(
     assign DataAddress_o = ALUResultM;
     assign DataOut_o     = WriteDataM;
     assign we_o          = MemWriteM;
+    assign re_o          = (ResultSrcM == 2'b01);
     assign ReadDataM     = DataIn_i;
     assign funct3_o      = funct3M;
 

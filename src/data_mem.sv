@@ -1,4 +1,7 @@
-module data_mem(
+module data_mem #(
+    parameter logic [31:0] BASE_ADDR = 32'h0000_2000,
+    parameter integer DEPTH_WORDS = 1024
+)(
     input logic [2:0] funct3M,
     input logic clk,       
     input logic WE,        //Este es el dato 'MemWrite'
@@ -7,12 +10,22 @@ module data_mem(
     output logic [31:0] ReadDataM //Este es el dato que sale de la 'Data Memory'
 );
 
-    logic [31:0] mem [0:255];
+    localparam integer DEPTH_BYTES = DEPTH_WORDS * 4;
+    localparam integer INDEX_WIDTH = (DEPTH_WORDS < 2) ? 1 : $clog2(DEPTH_WORDS);
+
+    logic [31:0] mem [0:DEPTH_WORDS-1];
     logic [31:0] word;
     logic [1:0] byte_offset;
+    logic [INDEX_WIDTH-1:0] word_index;
+    logic address_valid;
 
-    assign word = mem[A[31:2]];
-    assign byte_offset = A[1:0];
+    always_comb begin
+        address_valid = (A >= BASE_ADDR) && (A < BASE_ADDR + DEPTH_BYTES);
+        word_index = INDEX_WIDTH'((A - BASE_ADDR) >> 2);
+        byte_offset = A[1:0];
+        word = 32'b0;
+        if (address_valid) word = mem[word_index];
+    end
 
     // ==========================
     // READ (LOAD)
@@ -67,30 +80,30 @@ module data_mem(
     // WRITE (STORE)
     // ==========================
     always_ff @(posedge clk) begin
-        if (WE) begin
+        if (WE && address_valid) begin
             case (funct3M)
 
                 // SB
                 3'b000: begin
                     case (byte_offset)
-                        2'b00: mem[A[31:2]][7:0]   <= WD[7:0];
-                        2'b01: mem[A[31:2]][15:8]  <= WD[7:0];
-                        2'b10: mem[A[31:2]][23:16] <= WD[7:0];
-                        2'b11: mem[A[31:2]][31:24] <= WD[7:0];
+                        2'b00: mem[word_index][7:0]   <= WD[7:0];
+                        2'b01: mem[word_index][15:8]  <= WD[7:0];
+                        2'b10: mem[word_index][23:16] <= WD[7:0];
+                        2'b11: mem[word_index][31:24] <= WD[7:0];
                     endcase
                 end
 
                 // SH
                 3'b001: begin
                     case (byte_offset[1])
-                        1'b0: mem[A[31:2]][15:0]  <= WD[15:0];
-                        1'b1: mem[A[31:2]][31:16] <= WD[15:0];
+                        1'b0: mem[word_index][15:0]  <= WD[15:0];
+                        1'b1: mem[word_index][31:16] <= WD[15:0];
                     endcase
                 end
 
                 // SW
                 3'b010: begin
-                    mem[A[31:2]] <= WD;
+                    mem[word_index] <= WD;
                 end
 
             endcase
@@ -102,7 +115,7 @@ module data_mem(
     // ==========================
     initial begin
         integer i;
-        for (i = 0; i < 256; i++) begin
+        for (i = 0; i < DEPTH_WORDS; i++) begin
             mem[i] = 0;
         end
     end

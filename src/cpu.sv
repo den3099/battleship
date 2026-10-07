@@ -6,6 +6,7 @@ module cpu (
     output logic [31:0] DataOut_o,
     output logic [31:0] DataAddress_o,
     output logic        we_o,
+    output logic        re_o,
     output logic [2:0] funct3_o
 );
 
@@ -49,6 +50,7 @@ module cpu (
         .DataAddress_o(DataAddress_o),
         .DataOut_o(DataOut_o),
         .we_o(we_o),
+        .re_o(re_o),
         .funct3_o(funct3_o)
     );
 
