@@ -9,7 +9,9 @@ module traductor_direcciones (
     output logic        we_buzzer,
     output logic        we_btns,
     output logic        we_pc,
-    output logic        we_vga
+    output logic        we_vga,
+    output logic        we_uart,
+    output logic        we_led
 );
 
     localparam MEMORIA = 1'b0;
@@ -33,6 +35,8 @@ module traductor_direcciones (
         we_btns     = 1'b0;
         we_pc       = 1'b0;
         we_vga      = 1'b0;
+        we_uart     = 1'b0;
+        we_led      = 1'b0;
         select_o    = 3'b111;
 
         case(Direcciones)
@@ -57,7 +61,7 @@ module traductor_direcciones (
                     16'h0048: begin
                         select_o = 3'b100;
                         if (we_o) begin
-                            we_pc = 1'b1;
+                            we_uart = 1'b1;
                         end
                     end
 
@@ -68,12 +72,16 @@ module traductor_direcciones (
                         end
                     end
 
-                    16'h0130,
-                    16'h0138: begin
+                    16'h0130: begin
                         select_o = 3'b001;
                         if (we_o) begin
                             we_displays = 1'b1;
                         end
+                    end
+
+                    16'h0138: begin
+                        select_o = 3'b110;
+                        if (we_o) we_led = 1'b1;
                     end
 
                     16'h0140: begin
@@ -95,6 +103,8 @@ module traductor_direcciones (
                 we_btns = 1'b0;
                 we_pc = 1'b0;
                 we_vga = 1'b0;
+                we_uart = 1'b0;
+                we_led = 1'b0;
             end
         endcase
     end

@@ -5,8 +5,9 @@ module mux_arbitro (
     input  logic [31:0] rdata_displays,
     input  logic [31:0] rdata_buzzer,
     input  logic [31:0] rdata_btns,
-    input  logic [31:0] rdata_pc,
+    input  logic [31:0] rdata_uart,
     input  logic [31:0] rdata_vga,
+    input  logic [31:0] rdata_led,
 
     output logic [31:0] DataIn_o
 );
@@ -18,8 +19,9 @@ module mux_arbitro (
             3'b001: DataIn_o = rdata_displays;
             3'b010: DataIn_o = rdata_buzzer;
             3'b011: DataIn_o = rdata_btns;
-            3'b100: DataIn_o = rdata_pc;
+            3'b100: DataIn_o = rdata_uart;
             3'b101: DataIn_o = rdata_vga;
+            3'b110: DataIn_o = rdata_led;
             default: DataIn_o = 32'h0000_0000;
         endcase
     end
