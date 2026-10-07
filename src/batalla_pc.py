@@ -47,7 +47,7 @@ el RISC-V (rv32i) de la FPGA.
             0x02 SHOT   D0=fila D1=col
             0x03 HELLO  (solo valido en colocacion; la FPGA responde 0x11)
   FPGA->PC  0x11 PLACEMENT_START  inicio de partida o BTN_RST (PC reinicia todo)
-            0x12 PLACE_ACK        D0=id D1=0 ok / 1 traslape / 2 fuera de tablero
+            0x12 PLACE_ACK        D0=id D1=1 aceptada / 0 rechazada; D2=motivo
             0x13 BATTLE_START
             0x14 TURN             D0=1 (Jugador 1) / 2 (Jugador 2)
             0x15 SHOT_RESULT      D0=fila D1=col D2=0 fallo/1 impacto/2 hundido (propio)
@@ -58,12 +58,12 @@ el RISC-V (rv32i) de la FPGA.
   Orientacion: 0=H extiende el barco hacia columnas crecientes; 1=V hacia filas
   crecientes, a partir de la casilla inicial.
 
-3. REGLA DE IDEMPOTENCIA (REQUISITO PARA EL LADO FPGA / ENSAMBLADOR)
+3. REINTENTOS DE COLOCACION
 ------------------------------------------------------------------
-  Un PLACE con un id YA colocado REEMPLAZA al anterior (se borran las casillas
-  previas de ese id antes de validar traslape).  Asi, si se pierde el PLACE_ACK y
-  la PC reintenta, no se produce un falso "traslape" contra el propio barco.
-  (Ver la lista completa de requisitos para la FPGA al final de la entrega.)
+  El ensamblador acepta IDs secuenciales y no es idempotente. Si se pierde la
+  respuesta despues de aceptar un barco, un reintento recibe motivo 3 (ID fuera
+  de secuencia); la app solo lo interpreta como confirmacion recuperada cuando
+  ya habia retransmitido exactamente ese PLACE.
 
 4. ESTRUCTURA DEL ARCHIVO
 -------------------------
@@ -125,9 +125,10 @@ TYPE_NAMES = {
 
 BOARD = 8
 ROWS = "ABCDEFGH"
-SHIP_SIZES = (4, 3, 2)                  # ids 0, 1, 2
+SHIP_SIZES = (2, 3, 4)                  # el ensamblador espera s3 = 2, 3, 4
 RES_TXT = {0: "agua", 1: "impacto", 2: "impacto y hundido"}
-ACK_TXT = {1: "traslape con otro barco", 2: "fuera del tablero"}
+ACK_TXT = {1: "traslape con otro barco", 2: "fuera del tablero",
+           3: "ID u orientacion invalidos"}
 
 Frame = collections.namedtuple("Frame", "type d raw")   # d = (D0, D1, D2, D3)
 
@@ -446,19 +447,21 @@ class SimLink:
         # cualquier otra cosa: descartada sin afectar la partida
 
     def _on_place(self, sid, row, col, orient):
-        if sid >= len(SHIP_SIZES) or orient > 1:
-            return                                   # trama invalida: se descarta
+        # El ensamblador espera los IDs en orden y reporta D1=aceptada,
+        # D2=motivo (1 traslape, 2 limites, 3 ID/orientacion).
+        if sid >= len(SHIP_SIZES) or orient > 1 or sid != len(self.p2):
+            return self._emit(encode(T_PLACE_ACK, sid, 0, 3))
         cells = self._cells(SHIP_SIZES[sid], row, col, orient)
         if cells is None:
-            return self._emit(encode(T_PLACE_ACK, sid, 2))
+            return self._emit(encode(T_PLACE_ACK, sid, 0, 2))
         others = set()
         for k, v in self.p2.items():
-            if k != sid:                             # idempotencia: reemplaza al propio
+            if k != sid:
                 others |= v
         if others & set(cells):
-            return self._emit(encode(T_PLACE_ACK, sid, 1))
+            return self._emit(encode(T_PLACE_ACK, sid, 0, 1))
         self.p2[sid] = set(cells)
-        self._emit(encode(T_PLACE_ACK, sid, 0))
+        self._emit(encode(T_PLACE_ACK, sid, 1, 0))
         if len(self.p2) == len(SHIP_SIZES):
             self.phase = "battle"
             self._emit(encode(T_BATTLE_START))
@@ -831,7 +834,7 @@ class App:
             self.reset_game("Inicio de colocacion (partida nueva o BTN_RST). "
                             "Tableros reiniciados.")
         elif t == T_PLACE_ACK:
-            self.on_place_ack(d[0], d[1])
+            self.on_place_ack(d[0], d[1], d[2])
         elif t == T_BATTLE_START:
             if self.state != FIN:
                 if self.pending and self.pending.kind != "SHOT":
@@ -851,33 +854,45 @@ class App:
         else:
             self.unknown += 1
 
-    def on_place_ack(self, sid, code):
+    def on_place_ack(self, sid, accepted, reason):
+        if accepted not in (0, 1):
+            self.unknown += 1
+            self.say("PLACE_ACK invalido: D1 debe ser 0 o 1.")
+            return
         p = self.pending
         if not (p and p.kind == "PLACE" and p.key == sid):
             self.dup_ignored += 1                      # ACK duplicado/tardio
             return
-        self.pending = None
-        if code == 0:
-            row, col, orient = p.params
-            size = SHIP_SIZES[sid]
-            cells = [(row + (i if orient else 0), col + (0 if orient else i))
-                     for i in range(size)]
-            self.model.own_ships[sid] = cells           # reemplaza si ya existia
-            self.say("Barco %d (tamano %d) colocado en %s, %s."
-                     % (sid + 1, size, cell_name(row, col), "V" if orient else "H"))
-            if self.model.next_ship() is None:
-                self.state = ESPERA_BATALLA
-                self.say("Flota completa. Esperando al Jugador 1...")
-            else:
-                self.state = COLOCACION
-        else:
+        # Si el primer PLACE fue aceptado pero se perdio su ACK, el reintento
+        # del mismo ID recibe reason=3 porque el ensamblador ya avanzo al ID
+        # siguiente. Con el primer intento, reason=3 sigue siendo un rechazo.
+        recovered = not accepted and reason == 3 and p.attempts > 1
+        if not accepted and not recovered:
+            self.pending = None
             self.say("Colocacion rechazada: %s. Intente de nuevo con el barco %d."
-                     % (ACK_TXT.get(code, "codigo %d" % code), sid + 1))
+                     % (ACK_TXT.get(reason, "codigo %d" % reason), sid + 1))
+            return
+        self.pending = None
+        row, col, orient = p.params
+        size = SHIP_SIZES[sid]
+        cells = [(row + (i if orient else 0), col + (0 if orient else i))
+                 for i in range(size)]
+        self.model.own_ships[sid] = cells
+        note = " (ACK recuperado tras reintento)" if recovered else ""
+        self.say("Barco %d (tamano %d) colocado en %s, %s.%s"
+                 % (sid + 1, size, cell_name(row, col), "V" if orient else "H", note))
+        if self.model.next_ship() is None:
+            self.state = ESPERA_BATALLA
+            self.say("Flota completa. Esperando al Jugador 1...")
+        else:
+            self.state = COLOCACION
 
     def on_turn(self, who):
         if self.state == FIN or who not in (1, 2):
             return
-        if self.pending and self.pending.kind == "HELLO":
+        # TURN se emite al comenzar cada ciclo: si ya habia un disparo
+        # pendiente, la FPGA lo proceso o lo descarto y podemos liberar la UI.
+        if self.pending and self.pending.kind in ("HELLO", "SHOT"):
             self.pending = None
         self.state = TURNO_PROPIO if who == 2 else TURNO_RIVAL
         self.say("Es tu turno: elige una casilla del tablero rival." if who == 2
@@ -1251,9 +1266,6 @@ def main(argv=None):
     if args.list_ports:
         return list_ports()
     if args.sim:
-        if serial is None:
-            print("Falta pyserial: instale con  pip install pyserial")
-            return 1
         link = SimLink(seed=args.seed)
     else:
         if not args.port:
