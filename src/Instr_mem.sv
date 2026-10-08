@@ -1,6 +1,6 @@
 module Instr_mem #(
     parameter DEPTH = 2048,
-    parameter INIT_FILE = "sim/program.hex"
+    parameter INIT_FILE = "rtl/procesador/program.hex"
 )(
     input  logic [31:0] A,     // Dirección (PC)
     output logic [31:0] RD     // Instrucción
