@@ -837,6 +837,20 @@ class App:
             self.on_place_ack(d[0], d[1], d[2])
         elif t == T_BATTLE_START:
             if self.state != FIN:
+                # La FPGA solo emite BATTLE_START tras aceptar toda la flota.
+                # Si se perdio el ACK del ultimo PLACE, este evento confirma
+                # esa colocacion y permite completar el tablero local.
+                if self.pending and self.pending.kind == "PLACE":
+                    p = self.pending
+                    sid = p.key
+                    if 0 <= sid < len(SHIP_SIZES) and p.params:
+                        row, col, orient = p.params
+                        size = SHIP_SIZES[sid]
+                        self.model.own_ships[sid] = [
+                            (row + (i if orient else 0),
+                             col + (0 if orient else i))
+                            for i in range(size)]
+                        self.say("Ultima colocacion confirmada al iniciar la batalla.")
                 if self.pending and self.pending.kind != "SHOT":
                     self.pending = None
                 self.state = ESPERA_BATALLA
