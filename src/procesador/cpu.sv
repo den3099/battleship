@@ -1,4 +1,6 @@
-module cpu (
+module cpu #(
+    parameter PROGRAM_FILE = "src/procesador/program.hex"
+)(
     input  logic clk,
     input  logic rst,
 
@@ -29,7 +31,7 @@ module cpu (
     // ======================
     // DATAPATH
     // ======================
-    datapath dp(
+    datapath #(.PROGRAM_FILE(PROGRAM_FILE)) dp(
         .clk(clk),
         .rst(rst),
 

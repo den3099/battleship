@@ -1,4 +1,6 @@
-module datapath(
+module datapath #(
+    parameter PROGRAM_FILE = "src/procesador/program.hex"
+)(
     input logic clk,
     input logic rst,
 
@@ -168,7 +170,7 @@ module datapath(
     // ======================
     // Instruction Memory
     // ======================
-    Instr_mem u_imem(
+    Instr_mem #(.INIT_FILE(PROGRAM_FILE)) u_imem(
         .A(PCF),
         .RD(InstrF)
     );

@@ -1,7 +1,7 @@
 module pc(
     input logic clk,
     input logic rst,
-    input logic StallF,
+    input logic en,
 
     input logic [31:0] PCnext,
     output logic [31:0] PCF

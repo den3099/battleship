@@ -1,7 +1,7 @@
 module register_fetch_decode (
     input  logic        clk,
     input  logic        rst,
-    input  logic        StallD,
+    input  logic        en,
     input  logic        clear,
 
     input  logic [31:0] InstrF,
@@ -19,9 +19,6 @@ module register_fetch_decode (
     output logic [31:0] PredTargetD
 );
 
-    logic en;
-    assign en = ~StallD;
-
 always_ff @(posedge clk or posedge rst)
 begin
     if (rst || clear)
@@ -33,7 +30,7 @@ begin
         PredTakenD  <= 1'b0;
         PredTargetD <= 32'b0;
     end
-    else if (!StallD)
+    else if (en)
     begin
         InstrD      <= InstrF;
         PCD         <= PCF;

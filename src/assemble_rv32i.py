@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small two-pass assembler for the RV32I subset used by rtl/programa.asm."""
+"""Small two-pass assembler for the RV32I subset used by src/programa.asm."""
 
 from __future__ import annotations
 
@@ -203,8 +203,9 @@ def encode(line_no: int, pc: int, text: str, labels: dict[str, int]) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=Path("rtl/programa.asm"))
-    parser.add_argument("--output", type=Path, default=Path("rtl/procesador/program.hex"))
+    source_dir = Path(__file__).resolve().parent
+    parser.add_argument("--input", type=Path, default=source_dir / "programa.asm")
+    parser.add_argument("--output", type=Path, default=source_dir / "procesador" / "program.hex")
     parser.add_argument("--depth", type=int, default=2048,
                         help="palabras de ROM a emitir (por defecto 2048 = 8 KiB)")
     args = parser.parse_args()
