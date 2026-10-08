@@ -1,5 +1,5 @@
 module cpu #(
-    parameter PROGRAM_FILE = "src/procesador/program.hex"
+    parameter string PROGRAM_FILE = "src/procesador/program.hex"
 )(
     input  logic clk,
     input  logic rst,

@@ -772,12 +772,6 @@ fase_fin:
     add a4, zero, s9
     jal enviar_trama_uart
 
-    addi t0, zero, 1
-    slli t0, t0, 16
-    addi t0, t0, 312
-    addi t1, zero, 4
-    sw t1, 0(t0)
-
     addi t0, zero, 2
     slli t0, t0, 12
     

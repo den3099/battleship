@@ -8,8 +8,15 @@ module reg_file(
 
     logic [31:0] regs [0:31];
 
-    assign RD1D = (A1 == 5'd0) ? 32'b0 : regs[A1];
-    assign RD2D = (A2 == 5'd0) ? 32'b0 : regs[A2];
+    // Bypass WB->Decode: una instruccion puede leer un registro en el mismo
+    // flanco en que la instruccion anterior lo escribe. Sin este bypass, el
+    // registro decode/execute puede capturar el valor previo (p. ej. t4 en la
+    // rutina de colocacion de barcos), aunque la escritura WB ocurra en ese
+    // mismo ciclo.
+    assign RD1D = (A1 == 5'd0) ? 32'b0 :
+                  ((WE3 && (A1 == A3) && (A3 != 5'd0)) ? WD3 : regs[A1]);
+    assign RD2D = (A2 == 5'd0) ? 32'b0 :
+                  ((WE3 && (A2 == A3) && (A3 != 5'd0)) ? WD3 : regs[A2]);
 
     always_ff @(posedge clk) begin
         if (WE3 && (A3 != 5'd0)) begin

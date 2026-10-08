@@ -2,7 +2,10 @@
 // La interfaz de framebuffer VGA se conserva para enlazar el modulo VGA
 // cuando se integre; temporalmente su salida de video queda en negro.
 module top #(
-    parameter PROGRAM_FILE = "src/procesador/program.hex"
+    parameter string PROGRAM_FILE = "src/procesador/program.hex",
+    parameter integer CLK_FREQ_HZ = 100_000_000,
+    parameter integer BAUD_RATE = 115_200,
+    parameter integer BUTTON_DEBOUNCE_CYCLES = 1_000_000
 )(
     input  logic       clk_i,
     input  logic       rst_n_i,
@@ -48,19 +51,19 @@ module top #(
         .A(cpu_addr), .WD(cpu_wdata), .ReadDataM(rdata_mem)
     );
 
-    Display_7_seg #(.FRECUENCIA_RELOJ_HZ(100_000_000)) u_display (
+    Display_7_seg #(.FRECUENCIA_RELOJ_HZ(CLK_FREQ_HZ)) u_display (
         .clk_i(clk_i), .rst_i(rst), .write_enable_i(we_display),
         .addr_i(reg_addr), .wdata_i(cpu_wdata), .rdata_o(rdata_display),
         .segmentos_o(segmentos_o), .anodos_o(anodos_o)
     );
 
-    Buzzer #(.FRECUENCIA_RELOJ_HZ(100_000_000)) u_buzzer (
+    Buzzer #(.FRECUENCIA_RELOJ_HZ(CLK_FREQ_HZ)) u_buzzer (
         .clk_i(clk_i), .rst_i(rst), .write_enable_i(we_buzzer),
         .addr_i(reg_addr), .wdata_i(cpu_wdata), .rdata_o(rdata_buzzer),
         .zumbador_o(zumbador_o)
     );
 
-    Debouncer_Botones u_buttons (
+    Debouncer_Botones #(.CICLOS_ANTIRREBOTE(BUTTON_DEBOUNCE_CYCLES)) u_buttons (
         .clk_i(clk_i), .rst_i(rst), .write_enable_i(we_buttons),
         .addr_i(reg_addr), .wdata_i(cpu_wdata), .rdata_o(rdata_buttons),
         .controles_i(controles_i)
@@ -72,7 +75,7 @@ module top #(
         .leds_o(leds_estado_o)
     );
 
-    UART_Top #(.CLK_FREQ_HZ(100_000_000), .BAUD_RATE(115_200)) u_uart (
+    UART_Top #(.CLK_FREQ_HZ(CLK_FREQ_HZ), .BAUD_RATE(BAUD_RATE)) u_uart (
         .CLK(clk_i), .rst(rst), .addr_i(cpu_addr), .wdata_i(cpu_wdata),
         .we_UART(we_uart), .re_UART(cpu_re && select == 3'b100),
         .rdata_pc(rdata_uart), .rx_fisico(uart_rx_i), .tx_fisico(uart_tx_o)
