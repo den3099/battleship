@@ -202,17 +202,17 @@ j1_error_colision:
 
 j1_place:
     addi t3, zero, 0
-    addi t6, zero, 3        # Color cyan para mostrar barcos durante colocacion
+    addi t6, zero, 3        # Barco visible durante la colocacion de J1
 
 j1_place_loop:
     beq t3, s1, j1_done
     slli t4, t3, 3
     add t4, t4, a0
     slli t4, t4, 2
-    
-    # Guarda en VGA (s0) para verlo
+
+    # Muestra temporalmente la posicion del barco en la VGA.
     add t5, t4, s0
-    sw t6, 0(t5)            
+    sw t6, 0(t5)
     
     # Guarda en RAM de J1 (s6) para almacenar el dato real
     add t5, t4, s6
@@ -365,15 +365,10 @@ transicion_partida:
     addi t1, zero, 1
     sw t1, 0(t0)
 
-    # Carga tablero de J2 en la pantalla VGA
+    # Mantiene vacio el tablero VGA; los barcos no se muestran.
     # s0 = Dirección Base VGA (0x00011000)
     addi s0, zero, 17
     slli s0, s0, 12
-
-    # s2 = Dirección Base J2 RAM (0x00002200)
-    addi s2, zero, 2
-    slli s2, s2, 12
-    addi s2, s2, 512
 
     addi t1, zero, 0          # Índice inicial = 0
     addi t2, zero, 64         # 64 casillas del tablero
@@ -382,15 +377,8 @@ cargar_vga_rival_loop:
     beq t1, t2, f_init_batalla
     slli t3, t1, 2
     
-    # Lee de la RAM de J2
-    add t4, t3, s2
-    lw t5, 0(t4)
-    
-    # El framebuffer marca cualquier barco en cyan; la RAM conserva su ID.
-    beq t5, zero, cargar_vga_escribir
-    addi t5, zero, 3
-cargar_vga_escribir:
-    # Escribe en la VGA
+    # Reafirma el color de fondo para que solo se vean los impactos.
+    addi t5, zero, 1
     add t6, t3, s0
     sw t5, 0(t6)
     
@@ -583,7 +571,7 @@ win_j1_directo:
 f_j1_miss:
     addi t3, zero, 7          # Marca de fallo en RAM
     sw t3, 0(t0)
-    addi t2, zero, 4          # 4 = Rojo en VGA
+    addi t2, zero, 4          # Fallo visible en rojo sobre el mar
     addi s8, zero, 0          # Resultado = 0 (Fallo)
 
     # Activa Buzzer Fallo
@@ -840,13 +828,14 @@ limpiar_tableros:
     addi t0, zero, 17
     slli t0, t0, 12
     addi t1, zero, 0          
-    addi t2, zero, 64         
+    addi t2, zero, 64
+    addi t4, zero, 1          # Fondo del tablero sin barcos ni disparos
     
 loop_limpiar_vga:
     beq t1, t2, init_limpiar_ram
     slli t3, t1, 2
     add t3, t3, t0
-    sw zero, 0(t3)
+    sw t4, 0(t3)
     addi t1, t1, 1
     j loop_limpiar_vga
 
