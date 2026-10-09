@@ -53,7 +53,7 @@ El módulo Árbitro se compone de un módulo Traductor de Direcciones y un un MU
 
 El periférico VGA convierte los datos recibidos del procesador, a través del árbitro, en la imagen del tablero del jugador 2 y su panel de información. Sus cinco módulos trabajan como una sola unidad: almacenan el contenido gráfico, determinan el color de cada píxel y generan los sincronismos del monitor. Esta descripción corresponde a la versión base utilizada en los diagramas, anterior a la precarga de pantalla.
 
-##### Integración — `periferico_vga.sv`
+#####  periferico_vga.sv
 
 Conecta la memoria de video con el controlador y adapta el acceso del procesador. Recibe `addr_i[31:0]`, `wdata_i[31:0]` y la habilitación de escritura `we_vga`; devuelve las lecturas mediante `rdata_o[31:0]`.
 
