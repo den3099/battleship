@@ -301,6 +301,9 @@ Se utilizó un sincronizador de 2 etapas para evitar el rebote físico de los bo
 ![Diagrama de Cuarto Nivel VGA](../img/VGA_N4.png)
 
 #### b) Objetivo del módulo
+
+Permitir la comunicación entre el procesador y la pantalla VGA mediante una memoria de video mapeada en memoria. El módulo permite almacenar, leer y modificar información gráfica, además de generar las señales necesarias para visualizarla en una resolución de 640 × 480 píxeles.
+
 #### c) Entradas
 
 | Entrada | Descripción |
@@ -319,4 +322,13 @@ Se utilizó un sincronizador de 2 etapas para evitar el rebote físico de los bo
 | `screen_o` | Señal de color y posicionamiento de los pixeles en la pantalla. |
 
 #### e) Relación con otros módulos
+
+El periférico VGA se comunica con el procesador para recibir direcciones, datos y señales de escritura. Internamente, utiliza el módulo memoria_video para almacenar la información gráfica y el módulo controlador_vga para generar las señales RGB y los sincronismos de pantalla. Además, emplea fuente_5x7 para representar caracteres y reset_sincrono para controlar el reinicio de los distintos dominios de reloj.
+
 #### f) Explicación de funcionamiento
+Explicación del funcionamiento del periférico VGA
+El periférico VGA permite al procesador leer y modificar la información gráfica mediante una memoria de video mapeada en memoria.
+Primero, se recibe la dirección addr_i[31:0], se calcula su desplazamiento respecto a BASE_ADDR y se valida que pertenezca al rango de 2048 bytes y esté alineada a 32 bits.
+Si la dirección es válida, se habilita el acceso a la memoria de video de 512 palabras de 32 bits. El procesador puede escribir datos mediante we_vga y wdata_i, o leerlos mediante rdata_o.
+De forma independiente, el controlador VGA, utilizando un reloj de 25 MHz, consulta continuamente la memoria de video y genera las señales RGB y los sincronismos horizontal y vertical para mostrar una imagen de 640 × 480 píxeles.
+Finalmente, los cambios realizados por el procesador en la memoria se reflejan en la pantalla durante el barrido VGA, permitiendo actualizar los elementos gráficos sin interrumpir la generación de video.
