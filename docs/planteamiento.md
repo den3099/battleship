@@ -298,7 +298,7 @@ Se utilizó un sincronizador de 2 etapas para evitar el rebote físico de los bo
 ### Módulo Periférico VGA
 #### a) Diagrama / Diseño
 
-![Diagrama de Cuarto Nivel VGA](../img/Nvl 4 Periferico vga.png)
+![Diagrama de Cuarto Nivel VGA](<../img/Nvl 4 Periferico vga.png>)
 
 #### b) Objetivo del módulo
 
